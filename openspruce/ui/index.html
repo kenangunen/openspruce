@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=400">
+<title>Roborock</title>
+<style>
+:root{
+  --text:#12141c; --muted:rgba(18,20,28,.55); --line:rgba(255,255,255,.55);
+  --glass:rgba(255,255,255,.42); --glass-2:rgba(255,255,255,.55); --glass-hi:rgba(255,255,255,.75);
+  --edge:rgba(255,255,255,.7); --edge-2:rgba(255,255,255,.25);
+  --chip:rgba(255,255,255,.45); --track:rgba(18,20,28,.08);
+  --a1:#ff7a2b; --a2:#ff3d71; --grad:linear-gradient(135deg,var(--a1),var(--a2));
+  --accent:#ff5a3c; --ok:#18c37a; --warn:#f5a524; --bad:#ff3b5c;
+  --b1:#ffb38a; --b2:#b9a8ff; --b3:#8fe3ff; --base:#eef0f7;
+  --shadow:0 8px 32px rgba(31,38,135,.10);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --text:#f4f5fa; --muted:rgba(244,245,250,.55); --line:rgba(255,255,255,.08);
+    --glass:rgba(255,255,255,.06); --glass-2:rgba(255,255,255,.09); --glass-hi:rgba(255,255,255,.16);
+    --edge:rgba(255,255,255,.16); --edge-2:rgba(255,255,255,.04);
+    --chip:rgba(255,255,255,.07); --track:rgba(255,255,255,.08);
+    --b1:#ff5a1f; --b2:#5b45ff; --b3:#00b3a6; --base:#090a12;
+    --shadow:0 8px 32px rgba(0,0,0,.35);
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none}
+html,body{color:var(--text);font:13px/1.35 -apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;width:400px;background:var(--base)}
+body{height:660px;overflow-y:auto;overflow-x:hidden;position:relative}
+body::-webkit-scrollbar{width:0}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* ---------- animated background ---------- */
+.bg{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+.bg i{position:absolute;border-radius:50%;filter:blur(60px);opacity:.75}
+.bg i:nth-child(1){width:300px;height:300px;background:var(--b1);left:-90px;top:-70px;animation:drift1 18s ease-in-out infinite alternate}
+.bg i:nth-child(2){width:280px;height:280px;background:var(--b2);right:-110px;top:220px;animation:drift2 22s ease-in-out infinite alternate}
+.bg i:nth-child(3){width:260px;height:260px;background:var(--b3);left:-60px;bottom:-90px;animation:drift3 26s ease-in-out infinite alternate}
+@keyframes drift1{to{transform:translate(120px,90px) scale(1.15)}}
+@keyframes drift2{to{transform:translate(-130px,-60px) scale(.9)}}
+@keyframes drift3{to{transform:translate(150px,-120px) scale(1.2)}}
+.bg::after{content:"";position:absolute;inset:0;opacity:.05;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+#main,#splash{position:relative;z-index:1}
+
+/* ---------- glass primitives ---------- */
+.glass,.card{background:var(--glass);-webkit-backdrop-filter:blur(26px) saturate(170%);backdrop-filter:blur(26px) saturate(170%);
+  border:1px solid var(--edge-2);border-top-color:var(--edge);border-left-color:var(--edge);box-shadow:var(--shadow), inset 0 1px 0 var(--edge-2)}
+
+/* ---------- header ---------- */
+.top{position:sticky;top:0;z-index:5;padding:14px 16px 10px;display:flex;align-items:center;gap:10px;
+  -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);background:linear-gradient(to bottom,color-mix(in srgb,var(--base) 35%,transparent),transparent)}
+.top h1{font-size:19px;font-weight:700;letter-spacing:-.4px}
+.top .sub{color:var(--muted);font-size:12px;display:flex;align-items:center;gap:6px;margin-top:1px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 0 var(--ok);animation:ping 2.4s infinite}
+.dot.cloud{background:#4c8dff;--ok:#4c8dff}.dot.off{background:var(--bad);animation:none}
+@keyframes ping{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--ok) 70%,transparent)}70%,100%{box-shadow:0 0 0 7px transparent}}
+.batt{margin-left:auto;display:flex;align-items:center;gap:6px;font-weight:650;font-size:13px;padding:6px 10px;border-radius:999px}
+.battery{width:24px;height:12px;border:1.6px solid currentColor;border-radius:4px;position:relative;padding:1.5px}
+.battery::after{content:"";position:absolute;right:-4px;top:3px;width:2px;height:4px;background:currentColor;border-radius:0 1px 1px 0}
+.battery i{display:block;height:100%;border-radius:2px;background:currentColor;transition:width .8s cubic-bezier(.2,.8,.2,1)}
+.battery i.chg{background:linear-gradient(90deg,var(--ok) 0 40%,#7ff0b8 50%,var(--ok) 60% 100%);background-size:250% 100%;animation:charge 1.8s linear infinite}
+@keyframes charge{from{background-position:120% 0}to{background-position:-120% 0}}
+.iconbtn{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;color:var(--text);transition:transform .25s}
+.iconbtn:hover{background:var(--glass-hi)}
+.iconbtn.spin svg{animation:spin 1s cubic-bezier(.5,0,.5,1)}
+
+.wrap{padding:2px 12px 16px;display:flex;flex-direction:column;gap:10px}
+.card{border-radius:22px;padding:14px}
+.card h2{font-size:13.5px;font-weight:700;margin-bottom:11px;display:flex;align-items:center;gap:8px;letter-spacing:-.1px}
+.card h2 .hint{margin-left:auto;font-weight:550;color:var(--muted);font-size:12px}
+
+/* entrance */
+.enter .wrap > *{animation:rise .55s cubic-bezier(.2,.9,.25,1.1) both}
+.enter .wrap > *:nth-child(2){animation-delay:.04s}.enter .wrap > *:nth-child(3){animation-delay:.08s}
+.enter .wrap > *:nth-child(4){animation-delay:.12s}.enter .wrap > *:nth-child(5){animation-delay:.16s}
+.enter .wrap > *:nth-child(6){animation-delay:.20s}.enter .wrap > *:nth-child(7){animation-delay:.24s}
+.enter .wrap > *:nth-child(n+8){animation-delay:.28s}
+@keyframes rise{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
+
+/* error */
+.alert{display:none;border-radius:18px;padding:10px 12px;align-items:center;gap:10px;font-weight:600;color:var(--bad);
+  background:color-mix(in srgb,var(--bad) 16%,transparent);border:1px solid color-mix(in srgb,var(--bad) 35%,transparent);
+  -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+.alert.show{display:flex;animation:shake .5s cubic-bezier(.36,.07,.19,.97) both}
+.alert svg{animation:blink 1.6s ease-in-out infinite}
+@keyframes blink{50%{opacity:.35}}
+@keyframes shake{20%,60%{transform:translateX(-4px)}40%,80%{transform:translateX(4px)}}
+.alert button{margin-left:auto;background:var(--bad);color:#fff;border-radius:999px;padding:6px 12px;font-size:12px;font-weight:650;box-shadow:0 4px 14px color-mix(in srgb,var(--bad) 45%,transparent)}
+
+/* map */
+.map{position:relative;padding:0;overflow:hidden}
+.map .img{height:214px;display:grid;place-items:center;cursor:zoom-in;position:relative;overflow:hidden;
+  background:radial-gradient(120% 90% at 50% 0%,var(--glass-hi),transparent 70%)}
+.map img{max-width:94%;max-height:196px;transition:transform .6s cubic-bezier(.2,.8,.2,1);filter:drop-shadow(0 6px 18px rgba(0,0,0,.18))}
+.map .img:hover img{transform:scale(1.04)}
+.map .scan{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .4s;
+  background:linear-gradient(100deg,transparent 40%,color-mix(in srgb,var(--a1) 30%,transparent) 50%,transparent 60%);background-size:250% 100%}
+.map.run .scan{opacity:1;animation:scan 2.6s linear infinite}
+@keyframes scan{from{background-position:130% 0}to{background-position:-30% 0}}
+.map .empty{color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:10px;font-size:12px}
+.map .empty svg{width:40px;height:40px;animation:float 3s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-6px)}}
+.state{position:absolute;left:12px;top:12px;border-radius:999px;padding:6px 11px 6px 9px;font-weight:650;font-size:12px;display:flex;align-items:center;gap:7px;
+  background:var(--glass-2);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border:1px solid var(--edge)}
+.state .pulse{width:8px;height:8px;border-radius:50%;background:var(--muted);transition:background .3s}
+.state.run{color:#fff;background:var(--grad);border-color:transparent;box-shadow:0 6px 20px color-mix(in srgb,var(--a2) 40%,transparent)}
+.state.run .pulse{background:#fff;animation:pingw 1.4s infinite}
+@keyframes pingw{0%{box-shadow:0 0 0 0 rgba(255,255,255,.8)}100%{box-shadow:0 0 0 8px transparent}}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);margin:0 12px;border-radius:16px;background:var(--chip);border:1px solid var(--edge-2)}
+.stat{padding:9px 0;text-align:center}
+.stat + .stat{border-left:1px solid var(--line)}
+.stat b{display:block;font-size:19px;font-weight:700;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+.stat span{color:var(--muted);font-size:11px;font-weight:550}
+
+/* controls */
+.controls{display:flex;align-items:center;gap:9px;padding:12px}
+.primary{flex:1;height:50px;border-radius:999px;background:var(--grad);color:#fff;font-size:15px;font-weight:700;letter-spacing:-.2px;
+  display:flex;align-items:center;justify-content:center;gap:9px;position:relative;overflow:hidden;
+  box-shadow:0 10px 26px color-mix(in srgb,var(--a2) 42%,transparent), inset 0 1px 0 rgba(255,255,255,.35);
+  transition:transform .2s cubic-bezier(.2,.9,.3,1.3),box-shadow .2s}
+.primary::before{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.45) 50%,transparent 70%);
+  transform:translateX(-120%);animation:sheen 4.5s ease-in-out infinite}
+@keyframes sheen{0%,60%{transform:translateX(-120%)}85%,100%{transform:translateX(120%)}}
+.primary:hover{transform:translateY(-1px);box-shadow:0 14px 30px color-mix(in srgb,var(--a2) 50%,transparent)}
+.primary:active{transform:scale(.96)}
+.primary svg{fill:currentColor;stroke:none;width:16px;height:16px}
+.primary.running svg{animation:breathe 1.6s ease-in-out infinite}
+@keyframes breathe{50%{transform:scale(.8);opacity:.7}}
+.round{width:50px;height:50px;border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:9.5px;color:var(--muted);font-weight:650;
+  background:var(--chip);border:1px solid var(--edge-2);border-top-color:var(--edge);transition:transform .2s cubic-bezier(.2,.9,.3,1.4),background .2s}
+.round svg{color:var(--text)}
+.round:hover{background:var(--glass-hi);transform:translateY(-2px)}
+.round:active{transform:scale(.92)}
+.round.ring svg{animation:ring .9s ease-in-out}
+@keyframes ring{20%{transform:rotate(18deg)}40%{transform:rotate(-16deg)}60%{transform:rotate(10deg)}80%{transform:rotate(-6deg)}}
+
+/* ripple */
+.rip{position:absolute;border-radius:50%;transform:scale(0);background:rgba(255,255,255,.45);animation:rip .6s ease-out forwards;pointer-events:none}
+@keyframes rip{to{transform:scale(4);opacity:0}}
+
+/* segmented with sliding pill */
+.seg{display:flex;position:relative;background:var(--chip);border:1px solid var(--edge-2);border-radius:14px;padding:3px;margin-bottom:12px}
+.seg .pill{position:absolute;top:3px;bottom:3px;left:3px;width:calc(50% - 3px);border-radius:11px;background:var(--glass-hi);
+  box-shadow:0 2px 10px rgba(0,0,0,.08), inset 0 1px 0 var(--edge);transition:transform .35s cubic-bezier(.3,1.3,.5,1)}
+.seg.r .pill{transform:translateX(100%)}
+.seg button{flex:1;padding:7px 0;border-radius:11px;font-weight:650;color:var(--muted);position:relative;z-index:1;transition:color .25s}
+.seg button.on{color:var(--text)}
+
+/* mode tiles */
+.modes{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.tile{background:var(--chip);border:1px solid var(--edge-2);border-top-color:var(--edge);border-radius:16px;padding:11px 4px 9px;display:flex;flex-direction:column;align-items:center;gap:7px;
+  font-size:11px;font-weight:650;color:var(--muted);text-align:center;line-height:1.15;position:relative;overflow:hidden;
+  transition:transform .25s cubic-bezier(.2,.9,.3,1.4),background .25s,color .25s,box-shadow .25s}
+.tile svg{width:22px;height:22px;color:var(--text);transition:transform .35s cubic-bezier(.2,.9,.3,1.5)}
+.tile:hover{transform:translateY(-2px);background:var(--glass-hi)}
+.tile.on{background:var(--grad);color:#fff;border-color:transparent;box-shadow:0 8px 22px color-mix(in srgb,var(--a2) 38%,transparent)}
+.tile.on svg{color:#fff;transform:scale(1.12)}
+.tile.pop{animation:pop .45s cubic-bezier(.2,.9,.3,1.5)}
+@keyframes pop{0%{transform:scale(.9)}100%{transform:scale(1)}}
+.smartnote{margin-top:11px;color:var(--muted);font-size:12px;display:flex;gap:7px;align-items:flex-start}
+.smartnote:not(.hidden){animation:rise .4s ease both}
+#fine{display:grid;grid-template-rows:1fr;transition:grid-template-rows .35s ease,opacity .3s}
+#fine.collapsed{grid-template-rows:0fr;opacity:0}
+#fine > div{overflow:hidden}
+
+.row{margin-top:13px}
+.row label{display:block;color:var(--muted);font-size:11.5px;font-weight:650;margin-bottom:7px;letter-spacing:.1px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:var(--chip);border:1px solid var(--edge-2);border-radius:999px;padding:6px 12px;font-weight:650;font-size:12px;
+  transition:transform .2s cubic-bezier(.2,.9,.3,1.5),background .2s,color .2s,box-shadow .2s}
+.chip:hover{background:var(--glass-hi)}
+.chip:active{transform:scale(.93)}
+.chip.on{background:var(--grad);color:#fff;border-color:transparent;box-shadow:0 4px 14px color-mix(in srgb,var(--a2) 35%,transparent)}
+
+/* rooms */
+.rooms{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.room{background:var(--chip);border:1px solid var(--edge-2);border-top-color:var(--edge);border-radius:14px;padding:13px 6px;font-weight:650;font-size:12px;position:relative;
+  transition:transform .22s cubic-bezier(.2,.9,.3,1.5),background .2s,color .2s,box-shadow .2s}
+.room:hover{background:var(--glass-hi)}
+.room:active{transform:scale(.94)}
+.room.on{background:var(--grad);color:#fff;border-color:transparent;box-shadow:0 6px 18px color-mix(in srgb,var(--a2) 35%,transparent)}
+.room .n{position:absolute;top:-1px;right:-1px;font-size:10px;font-weight:700;min-width:18px;height:18px;border-radius:0 13px 0 10px;background:rgba(255,255,255,.3);color:#fff;display:none;place-items:center}
+.room.on .n{display:grid;animation:pop .35s cubic-bezier(.2,.9,.3,1.6)}
+.repeat{display:flex;align-items:center;justify-content:space-between;margin-top:12px}
+.repeat span{color:var(--muted);font-weight:650;font-size:12px}
+.stepper{display:flex;background:var(--chip);border:1px solid var(--edge-2);border-radius:12px;padding:3px}
+.stepper button{width:40px;padding:5px 0;border-radius:9px;font-weight:700;color:var(--muted);transition:all .25s}
+.stepper button.on{background:var(--glass-hi);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.08)}
+
+/* dock */
+.dock{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.dock .tile{padding:13px 4px 11px}
+.dock .tile.busy{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 50%,transparent)}
+.dock .tile.busy svg{color:var(--accent);animation:spin 2.4s linear infinite}
+.dock .tile.busy::after{content:"";position:absolute;inset:-1px;border-radius:16px;padding:1.5px;
+  background:conic-gradient(from var(--ang,0deg),transparent 0 70%,var(--a1),var(--a2));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:orbit 2s linear infinite}
+@property --ang{syntax:"<angle>";initial-value:0deg;inherits:false}
+@keyframes orbit{to{--ang:360deg}}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* list rows */
+.li{display:flex;align-items:center;gap:11px;padding:10px 0}
+.li + .li{border-top:1px solid var(--line)}
+.li > svg{width:30px;height:30px;padding:6px;border-radius:10px;background:var(--chip);border:1px solid var(--edge-2)}
+.li .t{flex:1;font-weight:600}
+.li .t small{display:block;color:var(--muted);font-weight:550;font-size:11.5px}
+.switch{width:42px;height:25px;border-radius:999px;background:var(--track);position:relative;transition:background .3s;flex:none;border:1px solid var(--edge-2)}
+.switch::after{content:"";position:absolute;left:2px;top:2px;width:19px;height:19px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.25);
+  transition:transform .35s cubic-bezier(.3,1.4,.5,1)}
+.switch.on{background:var(--grad);border-color:transparent;box-shadow:0 3px 12px color-mix(in srgb,var(--a2) 35%,transparent)}
+.switch.on::after{transform:translateX(17px)}
+input[type=range]{-webkit-appearance:none;width:130px;height:5px;border-radius:3px;background:linear-gradient(90deg,var(--a1),var(--a2)) 0/var(--v,60%) 100% no-repeat,var(--track)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.3);transition:transform .2s}
+input[type=range]:active::-webkit-slider-thumb{transform:scale(1.2)}
+
+/* consumables: rings */
+.cons{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.con{display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center}
+.ring{width:62px;height:62px;position:relative}
+.ring svg{width:62px;height:62px;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:6}
+.ring .tr{stroke:var(--track)}
+.ring .pr{stroke-linecap:round;stroke-dasharray:163.4;stroke-dashoffset:163.4;transition:stroke-dashoffset 1.1s cubic-bezier(.2,.8,.2,1)}
+.ring b{position:absolute;inset:0;display:grid;place-items:center;font-size:13px;font-weight:700;letter-spacing:-.3px}
+.con .nm{font-weight:650;font-size:11.5px}
+.con .hr{color:var(--muted);font-size:10.5px;font-weight:550}
+.con .reset{color:var(--accent);font-size:10.5px;font-weight:700;padding:2px 6px;border-radius:6px}
+.con .reset:hover{background:var(--chip)}
+.con.low .ring{animation:throb 1.8s ease-in-out infinite}
+@keyframes throb{50%{transform:scale(1.06)}}
+
+.routine{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 0;font-weight:600;transition:transform .2s}
+.routine + .routine{border-top:1px solid var(--line)}
+.routine .pi{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;background:var(--grad);box-shadow:0 4px 12px color-mix(in srgb,var(--a2) 30%,transparent)}
+.routine .pi svg{width:14px;height:14px;fill:#fff;stroke:none}
+.routine:hover{transform:translateX(3px)}
+
+.foot{display:flex;justify-content:center;gap:18px;color:var(--muted);font-size:12px;padding:4px 0 6px;font-weight:550}
+.foot button:hover{color:var(--text)}
+
+/* sheet + toast */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.25);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);display:flex;align-items:flex-end;z-index:20;
+  opacity:0;pointer-events:none;transition:opacity .25s}
+.scrim.show{opacity:1;pointer-events:auto}
+.sheet{width:100%;margin:10px;border-radius:24px;padding:18px 16px 14px;transform:translateY(110%);transition:transform .4s cubic-bezier(.2,.9,.3,1.1);background:var(--glass-2)}
+.scrim.show .sheet{transform:none}
+.sheet p{font-weight:650;font-size:14px;margin-bottom:14px;text-align:center}
+.sheet .btns{display:flex;gap:8px}
+.sheet .btns button{flex:1;height:44px;border-radius:14px;background:var(--chip);font-weight:650;border:1px solid var(--edge-2)}
+.sheet .btns .yes{background:var(--grad);color:#fff;border:0}
+.toast{position:fixed;left:50%;bottom:16px;transform:translate(-50%,40px) scale(.9);opacity:0;color:var(--text);border-radius:14px;padding:9px 14px;font-size:12px;font-weight:600;
+  max-width:360px;transition:all .35s cubic-bezier(.2,.9,.3,1.3);z-index:30;background:var(--glass-2);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border:1px solid var(--edge);box-shadow:var(--shadow)}
+.toast.show{opacity:1;transform:translate(-50%,0) scale(1)}
+
+.splash{height:660px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:var(--muted);text-align:center;padding:30px;font-weight:550}
+.splash .orb{width:84px;height:84px;border-radius:50%;display:grid;place-items:center;position:relative}
+.splash .orb::before{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid transparent;border-top-color:var(--a1);border-right-color:var(--a2);animation:spin 1.1s linear infinite}
+.splash .orb svg{width:40px;height:40px;color:var(--text)}
+.hidden{display:none!important}
+
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="bg"><i></i><i></i><i></i></div>
+
+<svg style="display:none">
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l13-7.5z"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6" y="4.5" width="4" height="15" rx="1"/><rect x="14" y="4.5" width="4" height="15" rx="1"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11l8-6.5 8 6.5"/><path d="M6 9.5V19h12V9.5"/><path d="M10 19v-5h4v5"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="i-robot" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12.5" r="3"/><path d="M7.5 7.2a6.5 6.5 0 0 1 9 0"/></symbol>
+  <symbol id="i-vac" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M12 10c0-4 3-6 5-5M14 12c4 0 6 3 5 5M12 14c0 4-3 6-5 5M10 12c-4 0-6-3-5-5"/></symbol>
+  <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 3.5s6 6.4 6 10.5a6 6 0 0 1-12 0c0-4.1 6-10.5 6-10.5z"/></symbol>
+  <symbol id="i-vacmop" viewBox="0 0 24 24"><circle cx="9" cy="10" r="1.6"/><path d="M9 8.4c0-3 2.2-4.5 3.8-3.8M10.6 10c3 0 4.5 2.2 3.8 3.8M9 11.6c0 3-2.2 4.5-3.8 3.8M7.4 10c-3 0-4.5-2.2-3.8-3.8"/><path d="M17.5 12.5s3 3.2 3 5.2a3 3 0 0 1-6 0c0-2 3-5.2 3-5.2z"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M5 6h9M18 6h1M5 12h3M12 12h7M5 18h11M20 18h-1"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></symbol>
+  <symbol id="i-bin" viewBox="0 0 24 24"><path d="M5 7h14l-1.2 12.5a1.5 1.5 0 0 1-1.5 1.5H7.7a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M9 7V4.5h6V7"/><path d="M10 11v6M14 11v6"/></symbol>
+  <symbol id="i-wash" viewBox="0 0 24 24"><path d="M4 14h16v2a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z"/><path d="M8 10.5c0-1.5 1-2 1-3.5M12 10.5c0-1.5 1-2 1-3.5M16 10.5c0-1.5 1-2 1-3.5"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></symbol>
+  <symbol id="i-vol" viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 3L5 13.5h6L10 21l8-10.5h-6z"/></symbol>
+  <symbol id="i-tool" viewBox="0 0 24 24"><path d="M14.5 6.5a4 4 0 0 0 5 5L12 19a2.1 2.1 0 0 1-3-3z"/><path d="M14.5 6.5L17 4l3 3-2.5 2.5"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.3-4.3L4 8.5M4 4v4.5h4.5M4 13a8 8 0 0 0 14.3 4.3l1.7-1.8M20 20v-4.5h-4.5"/></symbol>
+  <symbol id="i-power" viewBox="0 0 24 24"><path d="M12 3.5v8"/><path d="M7 6.3a7.5 7.5 0 1 0 10 0"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24"><path d="M3.5 6.5l5.5-2 6 2 5.5-2v13l-5.5 2-6-2-5.5 2z"/><path d="M9 4.5v13M15 6.5v13"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.5"/></symbol>
+</svg>
+
+<div id="splash" class="splash">
+  <div class="orb glass"><svg><use href="#i-robot"/></svg></div>
+  <div id="splashMsg">Bağlanıyor…</div>
+  <button class="chip" id="splashLog" onclick="send('open_log')">Günlüğü aç</button>
+</div>
+
+<div id="main" class="hidden">
+  <div class="top">
+    <div>
+      <h1 id="name">Saros 10</h1>
+      <div class="sub"><span class="dot" id="connDot"></span><span id="conn">yerel ağ</span></div>
+    </div>
+    <div class="batt glass" id="batt"><span id="battPct">–</span><div class="battery"><i id="battFill"></i></div></div>
+    <button class="iconbtn glass" id="refreshBtn" title="Yenile"><svg><use href="#i-refresh"/></svg></button>
+  </div>
+
+  <div class="wrap">
+    <div class="alert" id="alert"><svg><use href="#i-warn"/></svg><span id="alertText"></span><button onclick="send('resolve_error')">Çözüldü</button></div>
+
+    <!-- map + stats + controls -->
+    <div class="card map" id="mapCard">
+      <div class="img" onclick="send('open_map')" title="Haritayı büyüt">
+        <img id="mapImg" class="hidden" alt="">
+        <div class="scan"></div>
+        <div class="empty" id="mapEmpty"><svg><use href="#i-map"/></svg>Harita yükleniyor…</div>
+      </div>
+      <div class="state" id="stateBox"><span class="pulse"></span><span id="state">–</span></div>
+      <div class="stats">
+        <div class="stat"><b id="area">–</b><span>m²</span></div>
+        <div class="stat"><b id="time">–</b><span>dakika</span></div>
+        <div class="stat"><b id="pct">–</b><span id="pctLbl">ilerleme</span></div>
+      </div>
+      <div class="controls">
+        <button class="primary" id="primary"><svg><use id="primaryIcon" href="#i-play"/></svg><span id="primaryText">Temizle</span></button>
+        <button class="round" onclick="send('stop')" title="Durdur"><svg><use href="#i-stop"/></svg>Durdur</button>
+        <button class="round" onclick="send('dock')" title="İstasyona dön"><svg><use href="#i-home"/></svg>İstasyon</button>
+        <button class="round" id="findBtn" title="Robotu bul"><svg><use href="#i-bell"/></svg>Bul</button>
+      </div>
+    </div>
+
+    <!-- where -->
+    <div class="card">
+      <div class="seg" id="scopeSeg">
+        <span class="pill"></span><button data-v="all">Tüm ev</button><button data-v="rooms">Odalar</button>
+      </div>
+      <div id="roomsBox" class="hidden">
+        <div class="rooms" id="rooms"></div>
+        <div class="repeat"><span>Tekrar</span><div class="stepper" id="repeat"><button data-v="1">1×</button><button data-v="2">2×</button><button data-v="3">3×</button></div></div>
+      </div>
+      <div id="allBox" class="smartnote" style="margin-top:0">Robot kayıtlı haritadaki tüm odaları temizler.</div>
+    </div>
+
+    <!-- how -->
+    <div class="card">
+      <h2>Temizlik modu</h2>
+      <div class="modes" id="modes"></div>
+      <div class="smartnote hidden" id="smartNote"><svg style="width:15px;height:15px;color:var(--accent)"><use href="#i-spark"/></svg><span>SmartPlan; emiş gücünü, su miktarını ve rotayı her oda için kendisi seçer.</span></div>
+      <div id="fine"><div>
+        <div class="row" id="fanRow"><label>Emiş gücü</label><div class="chips" id="fan"></div></div>
+        <div class="row" id="waterRow"><label>Su miktarı</label><div class="chips" id="water"></div></div>
+        <div class="row" id="mopRow"><label>Paspas rotası</label><div class="chips" id="mop"></div></div>
+      </div></div>
+    </div>
+
+    <!-- dock -->
+    <div class="card" id="dockCard">
+      <h2>İstasyon</h2>
+      <div class="dock">
+        <button class="tile" id="dCollect" onclick="send('collect_dust')"><svg><use href="#i-bin"/></svg>Toz boşalt</button>
+        <button class="tile" id="dWash"><svg><use href="#i-wash"/></svg><span>Paspas yıka</span></button>
+        <button class="tile" id="dDry"><svg><use href="#i-sun"/></svg><span>Kurut</span></button>
+      </div>
+      <div class="li" id="autoDryRow" style="margin-top:6px"><div class="t">Yıkamadan sonra otomatik kurut</div><button class="switch" id="autoDry" onclick="send('toggle_auto_dry')"></button></div>
+    </div>
+
+    <!-- maintenance -->
+    <div class="card" id="consCard">
+      <h2><svg><use href="#i-tool"/></svg>Bakım <span class="hint" id="consHint"></span></h2>
+      <div class="cons" id="cons"></div>
+    </div>
+
+    <!-- settings -->
+    <div class="card" id="setCard">
+      <h2>Ayarlar</h2>
+      <div class="li" id="dndRow"><svg><use href="#i-moon"/></svg><div class="t">Rahatsız etmeyin<small>Gece saatlerinde sessiz</small></div><button class="switch" id="dnd" onclick="send('toggle_dnd')"></button></div>
+      <div class="li" id="lockRow"><svg><use href="#i-lock"/></svg><div class="t">Çocuk kilidi</div><button class="switch" id="lock" onclick="send('toggle_child_lock')"></button></div>
+      <div class="li" id="volRow"><svg><use href="#i-vol"/></svg><div class="t">Ses <small id="volTxt"></small></div><input type="range" id="vol" min="0" max="100" step="10"></div>
+    </div>
+
+    <div class="card" id="routCard">
+      <h2><svg><use href="#i-bolt"/></svg>Rutinler</h2>
+      <div id="routines"></div>
+    </div>
+
+    <div class="foot">
+      <button onclick="send('open_log')">Günlük</button>
+      <button onclick="send('quit')"><svg style="width:13px;height:13px;vertical-align:-2px"><use href="#i-power"/></svg> Çık</button>
+    </div>
+  </div>
+</div>
+
+<div class="scrim" id="scrim" onclick="if(event.target===this)closeSheet()">
+  <div class="sheet glass"><p id="sheetText"></p><div class="btns"><button onclick="closeSheet()">Vazgeç</button><button class="yes" id="sheetYes">Evet</button></div></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const T = {
+  errors:{"lidar_blocked": "LiDAR engellendi", "bumper_stuck": "Tampon sıkıştı", "wheels_suspended": "Tekerlekler havada", "cliff_sensor_error": "Uçurum sensörü hatası", "main_brush_jammed": "Ana fırça sıkıştı", "side_brush_jammed": "Yan fırça sıkıştı", "wheels_jammed": "Tekerlekler sıkıştı", "robot_trapped": "Robot sıkıştı", "no_dustbin": "Toz haznesi takılı değil", "strainer_error": "Filtre ıslak veya tıkalı", "compass_error": "Güçlü manyetik alan", "low_battery": "Pil zayıf", "charging_error": "Şarj hatası", "battery_error": "Pil hatası", "wall_sensor_dirty": "Duvar sensörü kirli", "robot_tilted": "Robot eğik zeminde", "side_brush_error": "Yan fırça hatası", "fan_error": "Fan hatası", "dock": "İstasyonun elektriği yok", "optical_flow_sensor_dirt": "Zemin sensörü kirli", "vertical_bumper_pressed": "Üst tampon basılı", "dock_locator_error": "İstasyon bulunamıyor", "return_to_dock_fail": "İstasyona dönülemedi", "nogo_zone_detected": "Yasak bölgede", "visual_sensor": "Kamera hatası", "light_touch": "Duvar sensörü hatası", "vibrarise_jammed": "Paspas modülü sıkıştı", "robot_on_carpet": "Robot halıda", "filter_blocked": "Filtre tıkalı", "invisible_wall_detected": "Görünmez duvar", "cannot_cross_carpet": "Halı geçilemiyor", "internal_error": "Dahili hata", "collect_dust_error_3": "Toz boşaltma istasyonunu temizleyin", "collect_dust_error_4": "Toz boşaltma voltaj hatası", "mopping_roller_1": "Yıkama silindiri sıkışmış olabilir", "mopping_roller_error_2": "Yıkama silindiri inmedi", "clear_water_box_hoare": "Temiz su tankını kontrol edin", "dirty_water_box_hoare": "Kirli su tankını kontrol edin", "sink_strainer_hoare": "Su filtresini yeniden takın", "clear_water_box_exception": "Temiz su tankı boş", "clear_brush_exception": "Su filtresinin takılı olduğunu kontrol edin", "filter_screen_exception": "İstasyon su filtresini temizleyin", "up_water_exception": "Su doldurma hatası", "drain_water_exception": "Su boşaltma hatası", "temperature_protection": "Sıcaklık koruması", "water_carriage_drop": "Paspas modülü düştü", "audio_error": "Ses hatası", "no_dustbin_or_filter": "İstasyon toz torbası/filtresi yok", "auto_empty_dock_fan_error": "İstasyon fan hatası", "duct_blockage": "İstasyon hava kanalı tıkalı", "auto_empty_dock_voltage_error": "İstasyon voltaj hatası", "water_empty": "Temiz su tankı boş", "waste_water_tank_full": "Kirli su tankı dolu", "maintenance_brush_jammed": "İstasyon temizleme fırçası sıkıştı", "dirty_tank_latch_open": "Kirli su tankı mandalı açık", "cleaning_tank_full_or_blocked": "Temizleme haznesi dolu veya tıkalı"},
+  states:{unknown:"Bilinmiyor",starting:"Başlıyor",charger_disconnected:"Şarjdan ayrıldı",idle:"Beklemede",remote_control_active:"Uzaktan kumanda",
+    cleaning:"Temizliyor",returning_home:"İstasyona dönüyor",manual_mode:"Manuel mod",charging:"Şarj oluyor",charging_problem:"Şarj sorunu",
+    paused:"Duraklatıldı",spot_cleaning:"Nokta temizliği",error:"Hata",shutting_down:"Kapanıyor",updating:"Güncelleniyor",docking:"İstasyona yerleşiyor",
+    going_to_target:"Hedefe gidiyor",zoned_cleaning:"Bölge temizliği",segment_cleaning:"Oda temizliği",emptying_the_bin:"Toz boşaltılıyor",
+    washing_the_mop:"Paspas yıkanıyor",washing_the_mop_2:"Paspas yıkanıyor",going_to_wash_the_mop:"Paspas yıkamaya gidiyor",mapping:"Harita çıkarıyor",
+    charging_complete:"Şarj dolu",device_offline:"Çevrimdışı",locked:"Kilitli",air_drying_stopping:"Kurutma durduruluyor",
+    attaching_the_mop:"Paspas takılıyor",detaching_the_mop:"Paspas çıkarılıyor",back_to_dock_washing_duster:"Yıkama için dönüyor"},
+  fan:{off:"Kapalı",gentle:"Nazik",quiet:"Sessiz",balanced:"Dengeli",turbo:"Turbo",max:"Maks",max_plus:"Maks+",off_raise_main_brush:"Kapalı",custom:"Özel",smart_mode:"Akıllı"},
+  water:{off:"Kapalı",low:"Düşük",mild:"Düşük",medium:"Orta",standard:"Orta",high:"Yüksek",intense:"Yüksek",min:"Min",max:"Maks",custom:"Özel",
+    custom_water_flow:"Özel akış",extreme:"Ekstrem",smart_mode:"Akıllı",smart_water:"Akıllı su",slight:"Çok hafif"},
+  mop:{standard:"Standart",deep:"Derin",deep_plus:"Derin+",deep_plus_cn:"Derin+",fast:"Hızlı",smart_mode:"Akıllı",custom:"Özel"},
+  modes:{vacuum:["Süpür","i-vac"],vac_and_mop:["Süpür + Paspas","i-vacmop"],mop:["Paspas","i-drop"],smart_mode:["SmartPlan","i-spark"],custom:["Özel","i-sliders"]},
+};
+const RUNNING = new Set(["starting","cleaning","spot_cleaning","going_to_target","zoned_cleaning","segment_cleaning","mapping","going_to_wash_the_mop","remote_control_active","manual_mode"]);
+const pretty = (k,tab) => k==null ? "–" : (tab && tab[k]) || k.replace(/_/g," ").replace(/^./,c=>c.toUpperCase());
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+const native = !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.rr);
+function send(action, ...args){
+  if(native) window.webkit.messageHandlers.rr.postMessage(JSON.stringify({action,args}));
+  else console.log("send", action, args);
+  if(!["set_pref","open_map","open_log","ready","close"].includes(action)) toast("Gönderildi…");
+}
+
+let S = null, scope = "all", busy = false;
+let toastT;
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),1600); }
+function confirmSheet(text, fn){ $("sheetText").textContent=text; $("scrim").classList.add("show"); $("sheetYes").onclick=()=>{closeSheet();fn();}; }
+function closeSheet(){ $("scrim").classList.remove("show"); }
+
+function chips(el, options, current, action, tab){
+  el.innerHTML = "";
+  const seen = new Set();
+  options.forEach(([code,key])=>{
+    let label = pretty(key, tab); if(seen.has(label)) return; seen.add(label);
+    const b = document.createElement("button");
+    b.className = "chip" + (code===current ? " on" : "");
+    b.textContent = label;
+    b.onclick = () => { el.querySelectorAll(".chip").forEach(c=>c.classList.remove("on")); b.classList.add("on"); send(action, code); };
+    el.appendChild(b);
+  });
+}
+function setSwitch(el, on){ el.classList.toggle("on", !!on); }
+
+window.render = function(s){
+  S = s;
+  if(s.phase !== "ready"){
+    $("main").classList.add("hidden"); $("splash").classList.remove("hidden");
+    $("splashMsg").textContent = s.message || "Bağlanıyor…";
+    return;
+  }
+  $("splash").classList.add("hidden"); $("main").classList.remove("hidden");
+
+  // header
+  $("name").textContent = s.name;
+  const conn = s.local ? "yerel ağ" : (s.connected ? "bulut" : "bağlantı yok");
+  $("conn").textContent = conn;
+  $("connDot").className = "dot" + (s.local ? "" : (s.connected ? " cloud" : " off"));
+  $("battPct").textContent = s.battery!=null ? s.battery + "%" : "–";
+  $("battFill").style.width = (s.battery||0) + "%";
+  $("battFill").className = s.charging ? "chg" : "";
+  $("battFill").style.background = s.charging ? "" : (s.battery!=null && s.battery<=20 ? "var(--bad)" : "");
+
+  // alert
+  const errs = [];
+  if(s.error_code) errs.push(pretty(s.error_key, T.errors));
+  if(s.dock_error_code) errs.push(pretty(s.dock_error_key, T.errors));
+  $("alert").classList.toggle("show", errs.length>0);
+  $("alertText").textContent = errs.join(" · ");
+  if(s.last_error && s.last_error!==window._lastErr) toast("Komut başarısız: " + s.last_error);
+  window._lastErr = s.last_error;
+
+  // map + state
+  const running = RUNNING.has(s.state_key);
+  $("stateBox").classList.toggle("run", running);
+  $("mapCard").classList.toggle("run", running);
+  $("state").textContent = pretty(s.state_key, T.states) + (s.charging && s.state_key!=="charging" ? " · şarjda" : "");
+  if(s.map){ $("mapImg").src = s.map; $("mapImg").classList.remove("hidden"); $("mapEmpty").classList.add("hidden"); }
+  countTo($("area"), s.area_m2, "", 1);
+  countTo($("time"), s.clean_min, "", 0);
+  countTo($("pct"), s.clean_percent!=null ? s.clean_percent : s.battery, "%", 0);
+  $("pctLbl").textContent = s.clean_percent!=null ? "ilerleme" : "pil";
+
+  // rooms
+  const sel = new Set(s.selected_rooms||[]);
+  $("rooms").innerHTML = "";
+  (s.rooms||[]).forEach(([seg,name])=>{
+    const b = document.createElement("button");
+    b.className = "room" + (sel.has(seg) ? " on" : "");
+    b.innerHTML = `<span class="n">${[...sel].indexOf(seg)+1}</span>${esc(name)}`;
+    b.onclick = () => {
+      const cur = new Set(S.selected_rooms||[]);
+      cur.has(seg) ? cur.delete(seg) : cur.add(seg);
+      S.selected_rooms = [...cur]; send("set_pref","selected_rooms",S.selected_rooms); render(S);
+    };
+    $("rooms").appendChild(b);
+  });
+  if(!(s.rooms||[]).length) $("scopeSeg").classList.add("hidden");
+  [...$("repeat").children].forEach(b=>{ b.classList.toggle("on", +b.dataset.v===(s.repeat||1));
+    b.onclick=()=>{ S.repeat=+b.dataset.v; send("set_pref","repeat",S.repeat); render(S); }; });
+  setScope(scope, true);
+
+  // primary button
+  const nSel = sel.size;
+  let icon="i-play", text="Temizle", act=()=>send("start");
+  if(running){ icon="i-pause"; text="Duraklat"; act=()=>send("pause"); }
+  else if(s.state_key==="paused"){ text="Devam et"; }
+  else if(scope==="rooms"){
+    text = nSel ? `${nSel} odayı temizle` : "Oda seçin";
+    act = nSel ? ()=>send("clean_rooms", (s.rooms||[]).filter(r=>sel.has(r[0])).map(r=>r[0]), s.repeat||1) : ()=>toast("Önce oda seçin");
+  }
+  $("primary").classList.toggle("running", running);
+  $("primaryIcon").setAttribute("href","#"+icon); $("primaryText").textContent = text; $("primary").onclick = act;
+
+  // modes
+  $("modes").innerHTML = "";
+  (s.clean_modes||[]).forEach(m=>{
+    const [label, ic] = T.modes[m] || [pretty(m), "i-vac"];
+    const b = document.createElement("button");
+    b.className = "tile" + (m===s.clean_mode ? " on" : "");
+    b.innerHTML = `<svg><use href="#${ic}"/></svg>${label}`;
+    b.onclick = () => { S.clean_mode = m; render(S); send("set_clean_mode", m);
+      const n=[...$("modes").children].find(x=>x.textContent===b.textContent); if(n){n.classList.add("pop");} };
+    $("modes").appendChild(b);
+  });
+  $("modes").style.gridTemplateColumns = `repeat(${Math.min(Math.max((s.clean_modes||[]).length,1),5)},1fr)`;
+  const smart = s.clean_mode === "smart_mode";
+  $("smartNote").classList.toggle("hidden", !smart);
+  $("fine").classList.toggle("collapsed", smart);
+  chips($("fan"), s.fan_options||[], s.fan, "set_fan", T.fan);
+  chips($("water"), s.water_options||[], s.water, "set_water", T.water);
+  chips($("mop"), s.mop_options||[], s.mop, "set_mop", T.mop);
+  $("fanRow").classList.toggle("hidden", s.clean_mode==="mop" || !(s.fan_options||[]).length);
+  $("waterRow").classList.toggle("hidden", s.clean_mode==="vacuum" || !(s.water_options||[]).length);
+  $("mopRow").classList.toggle("hidden", s.clean_mode==="vacuum" || !(s.mop_options||[]).length);
+
+  // dock
+  $("dockCard").classList.toggle("hidden", !s.has_dock);
+  $("dCollect").classList.toggle("hidden", !s.can_collect);
+  const washing = ["washing_the_mop","washing_the_mop_2"].includes(s.state_key);
+  $("dWash").classList.toggle("hidden", !s.can_wash);
+  $("dWash").classList.toggle("busy", washing);
+  $("dWash").querySelector("span").textContent = washing ? "Yıkamayı durdur" : "Paspas yıka";
+  $("dWash").onclick = () => send(washing ? "stop_wash" : "start_wash");
+  const drying = !!s.dry_status;
+  $("dDry").classList.toggle("hidden", !s.can_dry);
+  $("dDry").classList.toggle("busy", drying);
+  $("dDry").querySelector("span").textContent = drying ? "Kurutmayı durdur" : "Kurut";
+  $("dDry").onclick = () => send(drying ? "stop_dry" : "start_dry");
+  $("autoDryRow").classList.toggle("hidden", s.auto_dry==null);
+  setSwitch($("autoDry"), s.auto_dry);
+
+  // consumables
+  const cons = s.consumables||[];
+  $("consCard").classList.toggle("hidden", !cons.length);
+  $("cons").innerHTML = cons.map(([key,name,pct,hours])=>{
+    const col = pct<=10 ? "var(--bad)" : (pct<=30 ? "var(--warn)" : "var(--ok)");
+    return `<div class="con${pct<=10?" low":""}"><div class="ring"><svg viewBox="0 0 62 62"><circle class="tr" cx="31" cy="31" r="26"/>
+      <circle class="pr" cx="31" cy="31" r="26" stroke="${col}" data-p="${pct}"/></svg><b>%${pct}</b></div>
+      <div class="nm">${esc(name)}</div><div class="hr">${hours!=null?`${hours} sa`:""}</div>
+      ${pct<=30?`<button class="reset" data-k="${key}" data-n="${esc(name)}">Sıfırla</button>`:""}</div>`;
+  }).join("");
+  requestAnimationFrame(()=>requestAnimationFrame(()=>$("cons").querySelectorAll(".pr").forEach(c=>c.style.strokeDashoffset = 163.4*(1-c.dataset.p/100))));
+  $("cons").querySelectorAll(".reset").forEach(b=> b.onclick=()=>confirmSheet(`${b.dataset.n} sayacı sıfırlansın mı?`, ()=>send("reset_consumable", b.dataset.k)));
+  const low = cons.filter(c=>c[2]<=10).length;
+  $("consHint").textContent = low ? `${low} parça değişmeli` : "Her şey yolunda";
+  $("consHint").style.color = low ? "var(--bad)" : "";
+
+  // settings
+  $("dndRow").classList.toggle("hidden", s.dnd==null); setSwitch($("dnd"), s.dnd);
+  $("lockRow").classList.toggle("hidden", s.child_lock==null); setSwitch($("lock"), s.child_lock);
+  $("volRow").classList.toggle("hidden", s.volume==null);
+  if(s.volume!=null && document.activeElement!==$("vol")){ $("vol").value = s.volume; $("volTxt").textContent = "%"+s.volume; $("vol").style.setProperty("--v", s.volume+"%"); }
+  $("setCard").classList.toggle("hidden", s.dnd==null && s.child_lock==null && s.volume==null);
+
+  // routines
+  const r = s.routines||[];
+  $("routCard").classList.toggle("hidden", !r.length);
+  $("routines").innerHTML = r.map(([id,name])=>`<button class="routine" data-id="${id}"><span class="pi"><svg><use href="#i-play"/></svg></span>${esc(name)}</button>`).join("");
+  $("routines").querySelectorAll(".routine").forEach(b=> b.onclick=()=>send("run_routine", +b.dataset.id));
+};
+
+function setScope(v, silent){
+  scope = v;
+  [...$("scopeSeg").querySelectorAll("button")].forEach(b=>b.classList.toggle("on", b.dataset.v===v));
+  $("scopeSeg").classList.toggle("r", v==="rooms");
+  $("roomsBox").classList.toggle("hidden", v!=="rooms");
+  $("allBox").classList.toggle("hidden", v!=="all");
+  if(!silent && S) render(S);
+}
+[...$("scopeSeg").querySelectorAll("button")].forEach(b=> b.onclick=()=>setScope(b.dataset.v));
+$("vol").oninput = e => { $("volTxt").textContent = "%"+e.target.value; e.target.style.setProperty("--v", e.target.value+"%"); };
+$("vol").onchange = e => send("set_volume", +e.target.value);
+document.addEventListener("keydown", e => { if(e.key==="Escape") send("close"); });
+window.onOpen = () => {
+  document.body.scrollTop = 0;
+  document.body.classList.remove("enter"); void document.body.offsetWidth; document.body.classList.add("enter");
+  if(S) $("cons").querySelectorAll(".pr").forEach(c=>{ c.style.transition="none"; c.style.strokeDashoffset=163.4; void c.offsetWidth; c.style.transition=""; c.style.strokeDashoffset=163.4*(1-c.dataset.p/100); });
+};
+// count-up numbers
+function countTo(el, val, prefix, dec){
+  if(val==null){ el.textContent="–"; el.dataset.v=""; return; }
+  const from = el.dataset.v==="" || el.dataset.v==null ? 0 : +el.dataset.v; el.dataset.v = val;
+  if(from===val){ el.textContent = prefix + (+val).toFixed(dec); return; }
+  const t0 = performance.now(), d = 700;
+  (function step(t){ const k = Math.min(1,(t-t0)/d), e = 1-Math.pow(1-k,3);
+    el.textContent = prefix + (from+(val-from)*e).toFixed(dec); if(k<1) requestAnimationFrame(step); })(t0);
+}
+// ripple on press
+document.addEventListener("pointerdown", e => {
+  const b = e.target.closest(".primary,.round,.tile,.chip,.room"); if(!b) return;
+  const r = b.getBoundingClientRect(), d = Math.max(r.width,r.height);
+  const sp = document.createElement("span"); sp.className="rip";
+  sp.style.cssText = `width:${d}px;height:${d}px;left:${e.clientX-r.left-d/2}px;top:${e.clientY-r.top-d/2}px`;
+  if(getComputedStyle(b).position==="static") b.style.position="relative";
+  b.style.overflow="hidden"; b.appendChild(sp); setTimeout(()=>sp.remove(),650);
+});
+$("findBtn").onclick = () => { const b=$("findBtn"); b.classList.remove("ring"); void b.offsetWidth; b.classList.add("ring"); send("find"); };
+$("refreshBtn").onclick = () => { const b=$("refreshBtn"); b.classList.remove("spin"); void b.offsetWidth; b.classList.add("spin"); send("refresh"); };
+
+if(native) send("ready");
+else {
+  // Browser preview with sample data
+  const params = new URLSearchParams(location.search);
+  render({phase:"ready",name:"Saros 10",connected:true,local:true,state_key:params.get("state")||"charging",battery:81,charging:true,
+    area_m2:18.5,clean_min:31,clean_percent:params.get("state")==="segment_cleaning"?64:null,error_code:0,dock_error_code:params.get("err")?38:0,dock_error_key:"water_empty",
+    map:params.get("map")||null,rooms:[[16,"Salon"],[17,"Mutfak"],[18,"Yatak odası"],[19,"Çocuk odası"],[20,"Banyo"],[21,"Koridor"]],
+    selected_rooms:[16,17],repeat:1,routines:[[1,"Akşam temizliği"],[2,"Mutfak sonrası"]],
+    clean_modes:["vacuum","vac_and_mop","mop","smart_mode"],clean_mode:params.get("mode")||"vac_and_mop",
+    fan_options:[[101,"quiet"],[102,"balanced"],[103,"turbo"],[104,"max"],[108,"max_plus"]],fan:103,
+    water_options:[[200,"off"],[201,"low"],[202,"medium"],[203,"high"]],water:202,mop_options:[[300,"standard"],[301,"deep"],[303,"deep_plus"],[304,"fast"]],mop:300,
+    consumables:[["main_brush_work_time","Ana fırça",72,210],["side_brush_work_time","Yan fırça",48,96],["filter_work_time","Filtre",8,12],["sensor_dirty_time","Sensörler",25,8]],
+    has_dock:true,can_collect:true,can_wash:true,can_dry:true,dry_status:0,auto_dry:true,dnd:true,volume:60,child_lock:false});
+  if(params.get("scope")) setScope(params.get("scope"));
+  window.onOpen();
+}
+</script>
+</body>
+</html>
