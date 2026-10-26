@@ -22,6 +22,7 @@ from roborock.const import (
     SIDE_BRUSH_REPLACE_TIME,
 )
 from roborock.data import UserData
+from roborock.data.v1.v1_code_mappings import RoborockInCleaning
 from roborock.devices.device_manager import UserParams, create_device_manager
 from roborock.devices.file_cache import FileCache
 from roborock.devices.traits.v1.consumeable import ConsumableAttribute
@@ -307,6 +308,8 @@ class Backend:
             "dock_error_key": st.dock_error_status.name if st.dock_error_status else None,
             "dock_error_code": int(st.dock_error_status) if st.dock_error_status else 0,
             "dry_status": st.dry_status,
+            "unfinished": (st.in_cleaning.name
+                           if st.in_cleaning not in (None, RoborockInCleaning.complete) else None),
             "last_error": self._last_error,
             "rooms": list(self._rooms),
             "routines": list(self._routines),
@@ -359,7 +362,19 @@ class Backend:
         pass  # run() refreshes status after every action
 
     async def a_start(self) -> None:
-        await self._cmd(RoborockCommand.APP_START)
+        """Start, or resume the unfinished task with the matching command.
+
+        ``app_start`` always starts a whole-home clean, so a paused (or docked
+        mid-task) room or zone clean must be resumed with its own command.
+        """
+        await self._v1.status.refresh()
+        unfinished = self._v1.status.in_cleaning
+        if unfinished == RoborockInCleaning.segment_clean_not_complete:
+            await self._cmd(RoborockCommand.RESUME_SEGMENT_CLEAN)
+        elif unfinished == RoborockInCleaning.zone_clean_not_complete:
+            await self._cmd(RoborockCommand.RESUME_ZONED_CLEAN)
+        else:
+            await self._cmd(RoborockCommand.APP_START)
 
     async def a_pause(self) -> None:
         await self._cmd(RoborockCommand.APP_PAUSE)

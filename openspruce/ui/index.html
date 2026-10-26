@@ -328,7 +328,7 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.2)}
       </div>
       <div class="controls">
         <button class="primary" id="primary"><svg><use id="primaryIcon" href="#i-play"/></svg><span id="primaryText">Temizle</span></button>
-        <button class="round" onclick="send('stop')" title="Durdur"><svg><use href="#i-stop"/></svg>Durdur</button>
+        <button class="round" id="stopBtn" title="Görevi bitir"><svg><use href="#i-stop"/></svg>Bitir</button>
         <button class="round" onclick="send('dock')" title="İstasyona dön"><svg><use href="#i-home"/></svg>İstasyon</button>
         <button class="round" id="findBtn" title="Robotu bul"><svg><use href="#i-bell"/></svg>Bul</button>
       </div>
@@ -509,8 +509,13 @@ window.render = function(s){
   // primary button
   const nSel = sel.size;
   let icon="i-play", text="Temizle", act=()=>send("start");
-  if(running){ icon="i-pause"; text="Duraklat"; act=()=>send("pause"); }
-  else if(s.state_key==="paused"){ text="Devam et"; }
+  const unfinished = s.unfinished || (s.state_key==="paused" ? "global_clean_not_complete" : null);
+  // Robot is back at the dock in the middle of a task (washing the mop, emptying the bin)
+  const midTask = s.unfinished && ["washing_the_mop","washing_the_mop_2","emptying_the_bin","back_to_dock_washing_duster"].includes(s.state_key);
+  if(running || midTask){ icon="i-pause"; text="Duraklat"; act=()=>send("pause"); }
+  else if(unfinished){
+    text = {segment_clean_not_complete:"Odalara devam et", zone_clean_not_complete:"Bölgeye devam et"}[unfinished] || "Devam et";
+  }
   else if(scope==="rooms"){
     text = nSel ? `${nSel} odayı temizle` : "Oda seçin";
     act = nSel ? ()=>send("clean_rooms", (s.rooms||[]).filter(r=>sel.has(r[0])).map(r=>r[0]), s.repeat||1) : ()=>toast("Önce oda seçin");
@@ -621,6 +626,11 @@ document.addEventListener("pointerdown", e => {
   if(getComputedStyle(b).position==="static") b.style.position="relative";
   b.style.overflow="hidden"; b.appendChild(sp); setTimeout(()=>sp.remove(),650);
 });
+$("stopBtn").onclick = () => {
+  if(S && (S.unfinished || RUNNING.has(S.state_key) || S.state_key==="paused"))
+    confirmSheet("Görev bitirilsin mi? Kaldığı yerden devam edilemez.", ()=>send("stop"));
+  else send("stop");
+};
 $("findBtn").onclick = () => { const b=$("findBtn"); b.classList.remove("ring"); void b.offsetWidth; b.classList.add("ring"); send("find"); };
 $("refreshBtn").onclick = () => { const b=$("refreshBtn"); b.classList.remove("spin"); void b.offsetWidth; b.classList.add("spin"); send("refresh"); };
 
